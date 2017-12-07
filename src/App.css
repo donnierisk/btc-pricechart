@@ -1,6 +1,28 @@
 
 .App {
-  margin:0 auto;
-  background:grey;
-  width:60vw;
+  margin:20px auto 0;
+  width: calc(90vw - 40px);
+  padding:20px;
+  text-align:center;
+  font-family:arial;
+  border-radius:20px;
+}
+
+button{
+  background: grey;
+  border: 0;
+  color: white;
+  padding: 10px;
+  border-radius: 10px;
+  cursor:pointer;
+}
+
+button:hover {
+  background:rgb(68, 68, 68);
+}
+
+@media all and (min-width:768px){
+  .App {
+    width: calc(60vw - 40px);
+  }
 }

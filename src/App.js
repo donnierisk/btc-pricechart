@@ -6,7 +6,9 @@ import Chart from 'chart.js';
 class App extends Component {
 
   state = {
-    btcPrice: []
+    btcPrice: [],
+    loaded:false,
+    errorState:false
   }
 
   buildChart(){
@@ -15,10 +17,10 @@ class App extends Component {
     var myChart = new Chart(ctx, {
     type: 'line',
     data: {
-        labels: [],
+        labels: [0],
         datasets: [{
         label: 'Bitcoin Price',
-        data: 0,
+        data: [this.state.btcPrice],
         }]
       }
     }
@@ -35,47 +37,88 @@ class App extends Component {
     chart.update();
   }
 
-  requestData(){
-    let getCounter = 0;
+  requestData=()=>{
     let myChart = '';
 
-    setInterval(()=>{
-      axios({
-        method:'get',
-        url:`https://api.coinbase.com/v2/prices/BTC-ZAR/spot`})
-        .then(response =>{
+    axios({
+      method:'get',
+      url:`https://api.coinbase.com/v2/prices/BTC-ZAR/spot`})
+      .then(response =>{
+          let newStateArray = this.state.btcPrice.slice();
+          newStateArray.push(response.data.data.amount);
+          
+          this.setState({
+            btcPrice: newStateArray,
+            loaded:true
+          })
+            myChart = this.buildChart();
+
+    }).catch(error =>{
+      console.log(error);
+      this.setState({
+        errorState:true
+      })
+      throw error;
+    });
+
+    if(!this.state.errorState){
+      const requestInterval = setInterval(()=>{
+        axios({
+          method:'get',
+          url:`https://api.coinbase.com/v2/prices/BTC-ZAR/spot`})
+          .then(response =>{
             let newStateArray = this.state.btcPrice.slice();
             newStateArray.push(response.data.data.amount);
             
             this.setState({
-              btcPrice: newStateArray
+              btcPrice: newStateArray,
+              loaded:true
             })
-
-            if(getCounter === 0){
-              myChart = this.buildChart();
-            }
-            else {
-              this.addData(myChart,this.state.btcPrice.length-1,response.data.data.amount);
-            }
-            getCounter++;
-
-      }).catch(error =>{
-        console.log(error);
-      });
-      
-    },15000)
+            this.addData(myChart,this.state.btcPrice.length-1,this.state.btcPrice[this.state.btcPrice.length-1]);
+        }).catch(error =>{
+            
+            this.setState({
+              errorState:true,
+            })
+            clearInterval(requestInterval);
+            throw error;
+        });
+        
+      },15000)
+    }
   }
   
   componentDidMount(){
-    this.requestData();
+    if(!this.state.errorState)
+      this.requestData();
   }
 
   render() {
-    return (
-      <div className="App">
-        <canvas id="myChart"></canvas>
-      </div>
+    if(this.state.errorState){
+      return(
+        <div className="App">
+          <h1>Bitcoin Spot Price Chart (Rand)</h1>
+          <p>There was a problem loading the chart</p>
+          <button onClick={this.requestData}>Please click here to try again</button>          
+        </div>
+      );
+    }
+    if(!this.state.loaded){
+      return(
+        <div className="App">
+          <h1>Bitcoin Spot Price Chart</h1>
+          <p>Please wait while chart is loading...</p>
+        </div>
+      );
+    }
+    else {
+      return (
+        <div className="App">
+          <h1>Bitcoin Spot Price Chart</h1>
+          <canvas id="myChart"></canvas>
+        </div>
     );
+    }
   }
 }
 
